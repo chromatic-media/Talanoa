@@ -405,7 +405,7 @@ try { if (localStorage.getItem('tt_fit') === 'cover') document.querySelector('me
     <label class="choice"><input type="checkbox" id="strongOn"><span><strong>Darker page names</strong> <small>Darkens the lighter colours a little (I want, Food, Fun, Mom &amp; Dad, Yes) so the white writing is easier to read.</small></span></label>
 
     <h3>Talking in sentences</h3>
-    <label class="choice"><input type="checkbox" id="sentOn"><span><strong>Build sentences</strong> <small>Each picture is still said straight away, and its words also line up at the top. 🔊 says them all, one after another; ✕ starts again.</small></span></label>
+    <label class="choice"><input type="checkbox" id="sentOn"><span><strong>Build sentences</strong> <small>Each picture is still said straight away, and its words also line up at the top. 🔊 says them all, one after another; ✕ starts again. The next picture after 🔊 starts a new sentence, and so does a 2-minute pause.</small></span></label>
     <label class="choice"><input type="checkbox" id="suggestOn"><span><strong>Word suggestions on the ABC page</strong> <small>Three words to pick from above the letters, from what's been typed so far (words he has spoken before come first; they're remembered while Count taps on this phone is on).</small></span></label>
     <label class="choice"><input type="checkbox" id="numbersOn"><span><strong>Numbers on the ABC page</strong> <small>A row of numbers (1 to 9, then 0) under the letters. Numbers are said as words (15: "fifteen").</small></span></label>
     <label class="choice"><input type="checkbox" id="recentOn"><span><strong>Recent sentences with the big words</strong> <small>The big words also show the last few things said; tap one to say it again.</small></span></label>
@@ -976,9 +976,16 @@ function afterVoiceStarts(fn){
    Each picture is still said straight away, as always. Its words also
    line up in the banner: 🔊 says the whole sentence, each piece in its
    own recording; ✕ starts again. Words spoken on the ABC page join in
-   too. The sentence stays until ✕ (after 12 pieces the oldest drops off).
+   too (after 12 pieces the oldest drops off).
+   2026-10-11 (Tim: tapping Hug four times put "I want a hug" in the
+   sentence four times, and the old sentence never went away): the same
+   picture tapped again straight after is still said, but goes in the
+   sentence once; after 🔊 has said the sentence, the next picture starts
+   a new one; and a sentence nothing is added to for 2 minutes clears
+   itself, like the words at the top going back after 30 seconds.
    ============================================================ */
 var SENT = store('tt_sentence') === '1', sentence = [], SENT_MAX = 12, chain = 0;
+var SENT_FRESH = 2 * 60 * 1000, sentT = null, sentSaid = false;
 document.body.classList.toggle('sent', SENT);
 function sentenceText(parts){ return (parts || sentence).map(function(p){ return p.text; }).join(' '); }
 function showSentence(){
@@ -989,12 +996,17 @@ function showSentence(){
   while (i < parts.length - 1 && said.scrollWidth > said.clientWidth + 1){ i++; said.textContent = '… ' + parts.slice(i).join(' '); }
 }
 function addToSentence(part){
-  sentence.push(part);
+  if (sentSaid) sentence = [];                         /* 🔊 has said the last one: this picture starts a new sentence */
+  sentSaid = false;
+  var last = sentence[sentence.length - 1];
+  if (!last || last.text !== part.text || !!last.typed !== !!part.typed) sentence.push(part);   /* the same again: once */
   if (sentence.length > SENT_MAX) sentence.shift();
+  freshSoon();
   showSentence();
 }
+function freshSoon(){ clearTimeout(sentT); sentT = setTimeout(function(){ if (sentence.length) clearSentence(); }, SENT_FRESH); }
 function clearSentence(){
-  sentence = []; chain++;
+  sentence = []; chain++; sentSaid = false; clearTimeout(sentT);
   showSentence();
   said.textContent = HINT; litItem = null; lightUp();
 }
@@ -1025,6 +1037,7 @@ function sentenceSay(e){
   var parts = sentence.slice();
   setLast({sentence: parts, text: sentenceText(parts)});
   saySentence(parts);
+  sentSaid = true; freshSoon();
   flashBanner();
 }
 document.getElementById('sentSay').addEventListener('click', sentenceSay);
