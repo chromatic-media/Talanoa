@@ -4,7 +4,7 @@
    Everything the board needs is kept on the phone, so it keeps working with no
    internet. Voice clips go in their own cache ("tt-voices") that survives app
    updates; the page fills it for whichever voice is selected. */
-var VERSION = 'f9ecc734927a';
+var VERSION = 'b3c17d3b2e4c';
 var CACHE = 'tt-app-' + VERSION;
 var VOICE_CACHE = 'tt-voices';
 var SHARE_CACHE = 'tt-share';       /* a photo shared to Talanoa, until the page picks it up */
